@@ -68,6 +68,10 @@ async def tic_tac_toe(ctx, opponent: discord.User = None):
         # Play against the bot
         await ctx.send(f"{ctx.author.mention}, you are playing against the bot.")
 
+    if game_started:
+        await ctx.send("A game is already in progress.")
+        return
+
     game_started = True
     reset_game()
     turn = random.choice([ctx.author, opponent]) if opponent else ctx.author
