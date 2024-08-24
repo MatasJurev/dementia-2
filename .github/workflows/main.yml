@@ -26,4 +26,4 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build Docker image
-        run: docker build . -t dementia2:latest
+        run: docker build . -t dementia2:latest -f Dockerfile.prod
