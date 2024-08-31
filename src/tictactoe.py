@@ -44,94 +44,103 @@ def reset_game():
 # Command to play against the bot or another user
 @commands.command(name='toe')
 async def tic_tac_toe(ctx, opponent: discord.User = None):
-    global game_started
-    if game_started:
-        await ctx.send("A game is already in progress.")
-        return
-
-    if opponent:
-        # Play against another user
-        if opponent.id == ctx.author.id:
-            await ctx.send("You can't play against yourself!")
-            return
-        await ctx.send(f"{opponent.mention}, {ctx.author.mention} has challenged you to a game of Tic Tac Toe!\n"
-                       "React with ✅ to accept or ❌ to decline.")
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=lambda r, u: u == opponent and r.emoji in ['✅', '❌'])
-        except TimeoutError:
-            await ctx.send(f"{opponent.mention} did not respond. The challenge has been declined.")
-            return
-        if reaction.emoji == '❌':
-            await ctx.send(f"{opponent.mention} has declined the challenge.")
-            return
-    else:
-        # Play against the bot
-        await ctx.send(f"{ctx.author.mention}, you are playing against the bot.")
-
-    if game_started:
-        await ctx.send("A game is already in progress.")
-        return
-
-    game_started = True
-    reset_game()
-    turn = random.choice([ctx.author, opponent]) if opponent else ctx.author
-
-    # Display the initial state of the board
-    message = await ctx.send(f"{turn.mention}'s turn\n{display_board()}")
-
-    while 1:
-        #clear reactions
-        for number in numbers:
-            await message.remove_reaction(number, bot.user)
-            await message.remove_reaction(number, ctx.author)
-            await message.remove_reaction(number, opponent) if opponent else None
-
-        # Add reactions for the user to make a move
-        for number in numbers:
-            await message.add_reaction(number)
-
-        # Wait for the player's move
-        def check_reaction(reaction, user):
-            return user == turn and str(reaction.emoji) in numbers
-
-        try:
-            reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check_reaction)
-        except (TimeoutError, CancelledError):
-            await ctx.send(f"{turn.mention} took too long to make a move. The game has ended.")
+    try:
+        global game_started
+        if game_started:
+            await ctx.send("A game is already in progress.")
             return
 
-        # Update the board with the player's move
-        move = numbers.index(str(reaction.emoji))
+        if opponent:
+            # Play against another user
+            if opponent.id == ctx.author.id:
+                await ctx.send("You can't play against yourself!")
+                return
+            await ctx.send(f"{opponent.mention}, {ctx.author.mention} has challenged you to a game of Tic Tac Toe!\n"
+                           "React with ✅ to accept or ❌ to decline.")
+            try:
+                reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=lambda r, u: u == opponent and r.emoji in ['✅', '❌'])
+            except TimeoutError:
+                await ctx.send(f"{opponent.mention} did not respond. The challenge has been declined.")
+                return
+            if reaction.emoji == '❌':
+                await ctx.send(f"{opponent.mention} has declined the challenge.")
+                return
+        else:
+            # Play against the bot
+            await ctx.send(f"{ctx.author.mention}, you are playing against the bot.")
 
-        if board[move] != '⬜':
-            await ctx.send("That spot is already taken. Try again.")
-            continue
+        if game_started:
+            await ctx.send("A game is already in progress.")
+            return
 
-        board[move] = '❌' if turn == ctx.author else '⭕'
+        game_started = True
+        reset_game()
+        turn = random.choice([ctx.author, opponent]) if opponent else ctx.author
 
-        # Check if the current player has won
-        if check_winner('❌' if turn == ctx.author else '⭕'):
-            await message.edit(content=f"{turn.mention} wins!\n{display_board()}")
-            break
+        # Display the initial state of the board
+        message = await ctx.send(f"{turn.mention}'s turn\n{display_board()}")
 
-        # Check if the board is full (draw)
-        if is_board_full():
-            await message.edit(content=f"It's a draw!\n{display_board()}")
-            break
+        while 1:
+            #clear reactions
+            for number in numbers:
+                await message.remove_reaction(number, bot.user)
+                await message.remove_reaction(number, ctx.author)
+                await message.remove_reaction(number, opponent) if opponent else None
 
-        # Switch turns
-        turn = ctx.author if turn == opponent else opponent
+            # Add reactions for the user to make a move
+            for number in numbers:
+                await message.add_reaction(number)
 
-        if turn is None: #bot's turn
-            move = get_ai_move()
-            board[move] = '⭕'
-            turn = ctx.author
+            # Wait for the player's move
+            def check_reaction(reaction, user):
+                return user == turn and str(reaction.emoji) in numbers
 
-        # Update the message with the new board state
-        await message.edit(content=f"{turn.mention}'s turn\n{display_board()}")
+            try:
+                reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=check_reaction)
+            except (TimeoutError, CancelledError):
+                await ctx.send(f"{turn.mention} took too long to make a move. The game has ended.")
+                return
 
-    reset_game()
-    game_started = False
+            # Update the board with the player's move
+            move = numbers.index(str(reaction.emoji))
+
+            if board[move] != '⬜':
+                await ctx.send("That spot is already taken. Try again.")
+                continue
+
+            board[move] = '❌' if turn == ctx.author else '⭕'
+
+            # Check if the current player has won
+            if check_winner('❌' if turn == ctx.author else '⭕'):
+                await message.edit(content=f"{turn.mention} wins!\n{display_board()}")
+                break
+
+            # Check if the board is full (draw)
+            if is_board_full():
+                await message.edit(content=f"It's a draw!\n{display_board()}")
+                break
+
+            # Switch turns
+            turn = ctx.author if turn == opponent else opponent
+
+            if turn is None: #bot's turn
+                move = get_ai_move()
+                board[move] = '⭕'
+                turn = ctx.author
+
+            # Update the message with the new board state
+            await message.edit(content=f"{turn.mention}'s turn\n{display_board()}")
+
+        reset_game()
+        game_started = False
+    except commands.errors.CommandInvokeError as e:
+        await ctx.send(f"An error occurred: {e}")
+        reset_game()
+        game_started = False
+    except Exception as e:
+        await ctx.send(f"An unexpected error occurred: {e}")
+        reset_game()
+        game_started = False
 
 def minimax(new_board, player):
     avail_spots = [i for i in range(len(new_board)) if new_board[i] == '⬜']
