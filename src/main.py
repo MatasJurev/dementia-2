@@ -3,7 +3,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os
 import threading
-from server import run_dummy_server
+#from server import run_dummy_server
 from tictactoe import tic_tac_toe, init_tictactoe
 from gif import gif, init_gifs, fetch_gifs
 from quote import quote, init_quote, fetch_quote_of_day, fetch_verse_of_day
@@ -41,7 +41,7 @@ async def on_ready():
 async def on_message(message):
     await handle_message(bot, message)
 
-t1 = threading.Thread(target=run_dummy_server)
-t1.start()
+#t1 = threading.Thread(target=run_dummy_server)
+#t1.start()
 
 bot.run(os.getenv('BOT_TOKEN'))
